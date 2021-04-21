@@ -1,0 +1,9 @@
+---
+- name: Installing Kubernetes Cluster Using Ansible
+  hosts: all
+  ignore_errors: true
+  roles:
+  - role: controlplane
+    when: "{{ inventory_hostname }} == 'controlplane'"
+  - role: nodes
+    when: "{{ inventory_hostname }} == 'node0*'"
