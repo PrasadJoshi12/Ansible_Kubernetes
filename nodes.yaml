@@ -1,0 +1,52 @@
+---
+# tasks file for nodes
+  - name: Installing pre-requisites
+    hostname:
+      name: node01
+  - name: Set Selinux policy to permissive or disabled
+    command: setenforce 0
+    when: ansible_facts.selinux.status == 'enabled'
+  - name: Disable SELinux
+    selinux:
+      state: disabled
+    when: ansible_facts.selinux.status == 'enabled'
+  - name: load module in kernal
+    command: "modprobe br_netfilter"
+  - name: Set bridge-nf-call-iptables
+    command: "echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables"
+  - name: Add repository
+    yum_repository:
+      name=Kubernetes
+      description=Kubernetes
+      baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      enabled=yes
+      gpgcheck=yes
+      repo_gpgcheck=yes
+      gpgkey="{{ item }}"
+    with_items:
+      - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+      - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+  - name: Installing Required Packages
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - docker
+      - kubeadm
+      - kubelet
+  - name: Change the cgroup to systemd
+    copy:
+      src: deamon.json
+      dest: /etc/docker/daemon.json
+  - name: Staring and Enabling the service
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: yes
+    with_items:
+    - docker
+    - kubelet
+  - name: Swap off
+    command: "swapoff -a"
+  - name: Join to Cluster
+    command: "{{ join_command }}"
